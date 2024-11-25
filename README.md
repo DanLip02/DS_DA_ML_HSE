@@ -11,6 +11,6 @@
 
 ## Структура репозитория
 
-- **[homework_01]()**: Задача по анализу данных о игре **Murder in SQL City** с использованием библиотеки `pandas`.
+- **[homework_01](https://github.com/DanLip02/DS_DA_ML_HSE/tree/main/homework_01)**: Задача по анализу данных о игре **Murder in SQL City** с использованием библиотеки `pandas`.
   - **data_pandas**: Задача по анализу данных о игре **Murder in SQL City** с использованием библиотеки `pandas`
   - **data_statistic**: задача на анализ данных, визуализацию и стат.тесты, ссылки на работы ниже

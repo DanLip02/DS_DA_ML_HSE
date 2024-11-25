@@ -32,14 +32,14 @@
 ### Структура папки:
 
 data_pandas/ 
-├── crime_scene_report.csv # Исходные данные об игре "Murder in SQL City" 
-├── drivers_license.csv
-├── facebook_event_checkin.csv
-├── get_fit_now_check_in.csv
-├── get_fit_now_member.csv
-├── income.csv
-├── interview.csv
-├── person.csv
+├── crime_scene_report.csv # Исходные данные об игре "Murder in SQL City" \
+├── drivers_license.csv \
+├── facebook_event_checkin.csv \
+├── get_fit_now_check_in.csv \
+├── get_fit_now_member.csv \
+├── income.csv \
+├── interview.csv \
+├── person.csv \
 └── solution_hw_1.ipynb # Решение задачи
 
 ## Задача 2: Статистический анализ данных
@@ -58,6 +58,6 @@ data_pandas/
 
 ### Структура папки:
 
-data_statistics/ 
-├── cookie_cats.csv
+data_statistics/\
+├── cookie_cats.csv\
 └── solution_hw_2.ipynb # Решение задачи
