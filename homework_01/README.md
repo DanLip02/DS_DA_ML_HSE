@@ -23,7 +23,7 @@
 
 ### Структура папки:
 
-data_pandas/ 
+data_pandas/ \
 ├── crime_scene_report.csv # Исходные данные об игре "Murder in SQL City" \
 ├── drivers_license.csv \
 ├── facebook_event_checkin.csv \
