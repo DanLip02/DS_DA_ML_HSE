@@ -3,7 +3,6 @@ import matplotlib.pyplot as plt
 from sklearn.datasets import make_moons
 from sklearn.metrics import silhouette_score
 from sklearn.cluster import KMeans
-from mpl_toolkits.mplot3d import Axes3D
 import warnings
 from sklearn.preprocessing import StandardScaler
 
@@ -51,8 +50,6 @@ class DBSCAN:
                 self.labels_[neighbor_idx] = cluster_id
             i += 1
 
-
-# Генерация данных
 def generate_data():
     X1, y1 = make_moons(n_samples=500, noise=0.01, random_state=42)
     theta = np.pi / 2
@@ -83,17 +80,14 @@ def find_optimal_k(X):
         if len(set(kmeans.labels_)) > 1:
             silhouette_scores.append(silhouette_score(X, kmeans.labels_))
         else:
-            silhouette_scores.append(np.nan)  # Нельзя вычислить силуэт
+            silhouette_scores.append(np.nan)
 
-    # Находим локоть инерции (точка, где уменьшение инерции замедляется)
-    inertia_diff = np.diff(distortions)  # Первая производная
-    inertia_diff2 = np.diff(inertia_diff)  # Вторая производная
-    elbow_k = K[np.argmin(inertia_diff2) + 1]  # +1, так как np.diff уменьшает размер
+    inertia_diff = np.diff(distortions)
+    inertia_diff2 = np.diff(inertia_diff)
+    elbow_k = K[np.argmin(inertia_diff2) + 1]
 
-    # Находим лучшее k по максимуму силуэта
     best_silhouette_k = K[np.nanargmax(silhouette_scores)]
 
-    # График
     fig, ax1 = plt.subplots(figsize=(7, 5))
     ax2 = ax1.twinx()
 
@@ -104,7 +98,6 @@ def find_optimal_k(X):
     ax1.set_ylabel('Инерция', color='b')
     ax2.set_ylabel('Силуэт', color='r')
 
-    # Отмечаем оба k
     ax2.axvline(x=elbow_k, linestyle='--', color='blue', alpha=0.7, label=f'Локоть ({elbow_k})')
     ax2.axvline(x=best_silhouette_k, linestyle='--', color='red', alpha=0.7, label=f'Силуэт ({best_silhouette_k})')
 
@@ -113,15 +106,13 @@ def find_optimal_k(X):
 
     plt.show()
 
-    # Выбираем сбалансированное k
-    # optimal_k = min(elbow_k, best_silhouette_k)  # Можно изменить на среднее
+    # optimal_k = min(elbow_k, best_silhouette_k)
     optimal_k = round((elbow_k + best_silhouette_k) / 2)
     print(f'Локоть инерции: {elbow_k}, Оптимальный силуэт: {best_silhouette_k}')
     print(f'Выбрано оптимальное число кластеров: {optimal_k}')
 
     return optimal_k
 
-# Применение кластеризации
 def clustering(X_2d, X_3d, optimal_k):
 
     dbscan_2d = DBSCAN(eps=0.15, min_samples=10).fit(X_2d)
@@ -158,8 +149,6 @@ def clustering(X_2d, X_3d, optimal_k):
 
     return labels_2d, labels_3d, labels_kmeans_2d, labels_kmeans_3d
 
-
-# Визуализация кластеров
 def plot_clusters(X, labels, title, is_3d=False):
     plt.figure(figsize=(7, 6))
     if is_3d:
@@ -170,8 +159,6 @@ def plot_clusters(X, labels, title, is_3d=False):
     plt.title(title)
     plt.show()
 
-
-# Основной вызов функций
 X_2d, y_true_2d, X_3d, y_true_3d = generate_data()
 scaler = StandardScaler()
 
