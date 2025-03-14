@@ -5,6 +5,7 @@ from sklearn.cluster import KMeans
 from sklearn.datasets import make_moons
 from sklearn.metrics.pairwise import euclidean_distances
 from mpl_toolkits.mplot3d import Axes3D
+from sklearn.neighbors import NearestNeighbors
 
 
 class DBSCAN:
@@ -50,111 +51,137 @@ class DBSCAN:
         return np.where(distances <= self.eps)[0]
 
 
-# Генерация данных
-# 2D данные: 4 кластера
-X1, y1 = make_moons(n_samples=200, noise=0.05, random_state=42)
-X2, y2 = make_moons(n_samples=200, noise=0.05, random_state=52)
-X2 += np.array([2.5, 0])
-X_2d = np.vstack([X1, X2])
+# Генерация данных с явными кластерами
+def generate_2d_data():
+    # Первый набор лун
+    X1, _ = make_moons(n_samples=300, noise=0.05, random_state=42)
 
-# 3D данные: 2 кластера
-X_circles, y_circles = make_moons(n_samples=500, noise=0.05, random_state=42)
-X_3d = np.zeros((X_circles.shape[0], 3))
-X_3d[:, :2] = X_circles
-X_3d[:, 2] = np.sin(X_circles[:, 0] * 3)  # Усиленное нелинейное преобразование
+    # Второй набор лун с большим смещением
+    X2, _ = make_moons(n_samples=300, noise=0.05, random_state=52)
+    X2 = X2 @ np.array([[0.7, -0.7], [0.7, 0.7]]) + [3.5, 1.0]
 
-# Визуализация данных
-plt.figure(figsize=(12, 5))
-plt.subplot(1, 2, 1)
-plt.scatter(X_2d[:, 0], X_2d[:, 1], s=50)
-plt.title("2D данные (4 кластера)")
-
-ax = plt.subplot(1, 2, 2, projection='3d')
-ax.scatter(X_3d[:, 0], X_3d[:, 1], X_3d[:, 2], s=50)
-plt.title("3D данные (2 кластера)")
-plt.show()
+    return np.vstack([X1, X2])
 
 
-def apply_dbscan(X, eps, min_samples, title):
-    dbscan = DBSCAN(eps=eps, min_samples=min_samples)
-    dbscan.fit(X)
-    labels = dbscan.labels_
+def generate_3d_data():
+    # Создаем два четких кластера
+    X1, _ = make_moons(n_samples=500, noise=0.05)
+    X2 = X1 + [2.5, 1.0, 0.0]  # Сдвигаем второй кластер
 
-    # Визуализация
-    if X.shape[1] == 2:
-        plt.scatter(X[:, 0], X[:, 1], c=labels, s=50, cmap='viridis')
-    else:
-        ax = plt.figure().add_subplot(111, projection='3d')
-        ax.scatter(X[:, 0], X[:, 1], X[:, 2], c=labels, s=50, cmap='viridis')
-    plt.title(title)
+    X_3d = np.vstack([X1, X2])
+    X_3d[:, 2] = np.sin(X_3d[:, 0] * 3)  # Добавляем третье измерение
+    return X_3d
+
+
+def plot_data(X_2d, X_3d):
+    plt.figure(figsize=(15, 5))
+
+    plt.subplot(1, 2, 1)
+    plt.scatter(X_2d[:, 0], X_2d[:, 1], s=30, edgecolors='k', alpha=0.7)
+    plt.title("2D данные (2 пары лун)")
+
+    ax = plt.subplot(1, 2, 2, projection='3d')
+    ax.scatter(X_3d[:, 0], X_3d[:, 1], X_3d[:, 2], s=30, edgecolors='k', alpha=0.7)
+    plt.title("3D данные (2 кластера)")
     plt.show()
 
-    # Проверка кластеров
-    unique_labels = set(labels)
+
+def interactive_dbscan(X, max_eps=1.0, min_samples_range=(3, 15)):
+    plt.figure(figsize=(12, 6))
+
+    eps_slider = plt.Slider(
+        ax=plt.axes([0.2, 0.02, 0.6, 0.03]),
+        label='Eps',
+        valmin=0.1,
+        valmax=max_eps,
+        valinit=0.5
+    )
+
+    min_samples_slider = plt.Slider(
+        ax=plt.axes([0.2, 0.06, 0.6, 0.03]),
+        label='Min Samples',
+        valmin=min_samples_range[0],
+        valmax=min_samples_range[1],
+        valinit=5,
+        valstep=1
+    )
+
+    def update(val):
+        eps = eps_slider.val
+        min_samples = int(min_samples_slider.val)
+
+        dbscan = DBSCAN(eps=eps, min_samples=min_samples)
+        dbscan.fit(X)
+        labels = dbscan.labels_
+
+        plt.clf()
+        if X.shape[1] == 2:
+            plt.scatter(X[:, 0], X[:, 1], c=labels, cmap='tab20',
+                        s=50, edgecolors='k', alpha=0.8)
+        else:
+            ax = plt.subplot(111, projection='3d')
+            ax.scatter(X[:, 0], X[:, 1], X[:, 2], c=labels,
+                       cmap='tab20', s=50, edgecolors='k', alpha=0.8)
+
+        unique_labels = np.unique(labels)
+        n_clusters = len(unique_labels) - (1 if -1 in unique_labels else 0)
+        plt.title(f'Eps: {eps:.2f}, Min Samples: {min_samples}\nClusters: {n_clusters}')
+        plt.draw()
+
+    eps_slider.on_changed(update)
+    min_samples_slider.on_changed(update)
+    update(None)
+    plt.show()
+
+
+# Основной блок выполнения
+X_2d = generate_2d_data()
+X_3d = generate_3d_data()
+plot_data(X_2d, X_3d)
+
+print("Интерактивная настройка для 2D данных:")
+interactive_dbscan(X_2d, max_eps=0.8, min_samples_range=(3, 10))
+
+print("\nИнтерактивная настройка для 3D данных:")
+interactive_dbscan(X_3d, max_eps=1.2, min_samples_range=(5, 15))
+
+
+# Финализация параметров после ручной настройки
+def final_clustering():
+    # Параметры для 2D (подобраны интерактивно)
+    print("\nФинальная кластеризация 2D:")
+    dbscan_2d = DBSCAN(eps=0.45, min_samples=6)
+    dbscan_2d.fit(X_2d)
+    plot_results(X_2d, dbscan_2d.labels_, "2D данные")
+
+    # Параметры для 3D (подобраны интерактивно)
+    print("\nФинальная кластеризация 3D:")
+    dbscan_3d = DBSCAN(eps=0.85, min_samples=8)
+    dbscan_3d.fit(X_3d)
+    plot_results(X_3d, dbscan_3d.labels_, "3D данные")
+
+
+def plot_results(X, labels, title):
+    plt.figure(figsize=(10, 6))
+
+    if X.shape[1] == 2:
+        plt.scatter(X[:, 0], X[:, 1], c=labels, cmap='tab20',
+                    s=50, edgecolors='k', alpha=0.8)
+    else:
+        ax = plt.subplot(111, projection='3d')
+        ax.scatter(X[:, 0], X[:, 1], X[:, 2], c=labels,
+                   cmap='tab20', s=50, edgecolors='k', alpha=0.8)
+
+    unique_labels = np.unique(labels)
     n_clusters = len(unique_labels) - (1 if -1 in unique_labels else 0)
+    plt.title(f'{title}\nНайдено кластеров: {n_clusters}')
+    plt.colorbar(boundaries=np.unique(labels))
+    plt.show()
 
     if n_clusters > 1:
         mask = labels != -1
         score = silhouette_score(X[mask], labels[mask])
         print(f"Силуэт: {score:.2f}")
-    else:
-        print("Недостаточно кластеров для оценки силуэтта")
 
 
-# Кластеризация 2D
-print("Обработка 2D данных:")
-apply_dbscan(X_2d, eps=0.3, min_samples=5, title="DBSCAN 2D")
-
-# Кластеризация 3D
-print("\nОбработка 3D данных:")
-apply_dbscan(X_3d, eps=0.5, min_samples=5, title="DBSCAN 3D")
-
-
-def compare_with_kmeans(X, true_clusters):
-    # Метод локтя
-    wcss = []
-    max_k = 10
-    for k in range(1, max_k + 1):
-        kmeans = KMeans(n_clusters=k, random_state=42)
-        kmeans.fit(X)
-        wcss.append(kmeans.inertia_)
-    plt.plot(range(1, max_k + 1), wcss)
-    plt.title("Метод локтя")
-    plt.xlabel("Количество кластеров")
-    plt.show()
-
-    # Оптимальный k по силуэту
-    best_score = -1
-    best_k = 1
-    for k in range(2, max_k + 1):
-        kmeans = KMeans(n_clusters=k, random_state=42)
-        labels = kmeans.fit_predict(X)
-        score = silhouette_score(X, labels)
-        if score > best_score:
-            best_score = score
-            best_k = k
-
-    print(f"Лучший KMeans: k={best_k}, силуэт={best_score:.2f}")
-
-    # Сравнение с DBSCAN
-    dbscan = DBSCAN(eps=0.3 if X.shape[1] == 2 else 0.5,
-                    min_samples=5)
-    dbscan.fit(X)
-    dbscan_labels = dbscan.labels_
-
-    unique_labels = set(dbscan_labels)
-    n_clusters = len(unique_labels) - (1 if -1 in unique_labels else 0)
-
-    if n_clusters > 1:
-        mask = dbscan_labels != -1
-        dbscan_score = silhouette_score(X[mask], dbscan_labels[mask])
-        print(f"DBSCAN силуэт: {dbscan_score:.2f}")
-    else:
-        print("DBSCAN не нашёл кластеры")
-
-
-print("\nСравнение для 2D данных:")
-compare_with_kmeans(X_2d, 4)
-
-print("\nСравнение для 3D данных:")
-compare_with_kmeans(X_3d, 2)
+final_clustering()
