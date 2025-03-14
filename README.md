@@ -17,4 +17,5 @@
   - **solution.ipynb**: Задача заключается в дополнительной функции KNN `scikit-learn`
   - **solution_2.ipynb**: Задача заключается в исследовании параметров лин. регресс. `scikit-learn`
   - **solution_3.ipynb**: Задача заключается в добавлении минимизации MSE `scikit-learn`
-  
+- **[homework_03](https://github.com/DanLip02/DS_DA_ML_HSE/tree/main/homework_03)**: Домашняя работа #3
+  - **solution.ipynb**: Задача заключается в реализации DBSCAN, генерации выборки, сверки с K-mean
