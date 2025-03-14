@@ -5,12 +5,13 @@ from sklearn.metrics import silhouette_score
 from sklearn.cluster import KMeans
 from mpl_toolkits.mplot3d import Axes3D
 import warnings
+from sklearn.preprocessing import StandardScaler
 
 warnings.filterwarnings("ignore", category=UserWarning)
 
 
 class DBSCAN:
-    def __init__(self, eps=0.05, min_samples=10):
+    def __init__(self, eps=0.15, min_samples=10):
         self.eps = eps
         self.min_samples = min_samples
         self.labels_ = None
@@ -70,7 +71,6 @@ def generate_data():
     return X_2d, y_true_2d, X_3d, y_true_3d
 
 
-# Метод локтя и силуэтный анализ
 def find_optimal_k(X):
     distortions = []
     silhouette_scores = []
@@ -79,23 +79,47 @@ def find_optimal_k(X):
     for k in K:
         kmeans = KMeans(n_clusters=k, random_state=42).fit(X)
         distortions.append(kmeans.inertia_)
-        silhouette_scores.append(silhouette_score(X, kmeans.labels_))
 
+        if len(set(kmeans.labels_)) > 1:
+            silhouette_scores.append(silhouette_score(X, kmeans.labels_))
+        else:
+            silhouette_scores.append(np.nan)  # Нельзя вычислить силуэт
+
+    # Находим локоть инерции (точка, где уменьшение инерции замедляется)
+    inertia_diff = np.diff(distortions)  # Первая производная
+    inertia_diff2 = np.diff(inertia_diff)  # Вторая производная
+    elbow_k = K[np.argmin(inertia_diff2) + 1]  # +1, так как np.diff уменьшает размер
+
+    # Находим лучшее k по максимуму силуэта
+    best_silhouette_k = K[np.nanargmax(silhouette_scores)]
+
+    # График
     fig, ax1 = plt.subplots(figsize=(7, 5))
     ax2 = ax1.twinx()
+
     ax1.plot(K, distortions, 'bo-', label='Инерция')
     ax2.plot(K, silhouette_scores, 'ro-', label='Силуэтный коэффициент')
 
     ax1.set_xlabel('Число кластеров')
     ax1.set_ylabel('Инерция', color='b')
     ax2.set_ylabel('Силуэт', color='r')
-    plt.title('Метод локтя и силуэтный анализ')
+
+    # Отмечаем оба k
+    ax2.axvline(x=elbow_k, linestyle='--', color='blue', alpha=0.7, label=f'Локоть ({elbow_k})')
+    ax2.axvline(x=best_silhouette_k, linestyle='--', color='red', alpha=0.7, label=f'Силуэт ({best_silhouette_k})')
+
+    plt.title(f'Метод локтя и силуэтный анализ')
+    fig.legend(loc="upper right")
+
     plt.show()
 
-    best_k = K[np.argmax(silhouette_scores)]
-    print(f'Оптимальное число кластеров: {best_k}')
-    return best_k
+    # Выбираем сбалансированное k
+    # optimal_k = min(elbow_k, best_silhouette_k)  # Можно изменить на среднее
+    optimal_k = round((elbow_k + best_silhouette_k) / 2)
+    print(f'Локоть инерции: {elbow_k}, Оптимальный силуэт: {best_silhouette_k}')
+    print(f'Выбрано оптимальное число кластеров: {optimal_k}')
 
+    return optimal_k
 
 # Применение кластеризации
 def clustering(X_2d, X_3d, optimal_k):
@@ -149,6 +173,8 @@ def plot_clusters(X, labels, title, is_3d=False):
 
 # Основной вызов функций
 X_2d, y_true_2d, X_3d, y_true_3d = generate_data()
+scaler = StandardScaler()
+
 optimal_k = find_optimal_k(X_2d)
 labels_2d, labels_3d, labels_kmeans_2d, labels_kmeans_3d = clustering(X_2d, X_3d, optimal_k)
 
