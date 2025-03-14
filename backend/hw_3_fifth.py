@@ -10,7 +10,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 
 class DBSCAN:
-    def __init__(self, eps=0.2, min_samples=5):
+    def __init__(self, eps=0.05, min_samples=10):
         self.eps = eps
         self.min_samples = min_samples
         self.labels_ = None
@@ -51,23 +51,22 @@ class DBSCAN:
             i += 1
 
 
-# Генерация данных
+# Генерация данных с двумя лунными структурами и шумом в 2D, одной луной и шумом в 3D
 def generate_data():
-    X1, y1 = make_moons(n_samples=500, noise=0.03, random_state=42)
-    theta = np.pi
-    R = np.array([[np.cos(theta), -np.sin(theta)],
-                  [np.sin(theta), np.cos(theta)]])
-    X2 = (X1 @ R.T) + np.array([2.5, 2.5])
-    y2 = y1 + 2
-    X_2d = np.vstack((X1, X2))
-    y_true_2d = np.concatenate((y1, y2))
+    X1, _ = make_moons(n_samples=500, noise=0.1, random_state=42)
+    X2, _ = make_moons(n_samples=500, noise=0.1, random_state=43)
+    X2[:, 0] += 2.5  # Смещение второй луны вправо
+    X2[:, 1] += 2.5  # Смещение второй луны вверх
 
-    X_temp, y_temp = make_moons(n_samples=500, noise=0.03, random_state=42)
-    z = np.random.normal(scale=0.05, size=(X_temp.shape[0], 1))
-    X_3d = np.hstack((X_temp, z))
-    y_true_3d = y_temp
+    noise = np.random.uniform(low=-1, high=4, size=(200, 2))  # Шум в 2D
+    X_2d = np.vstack((X1, X2, noise))
 
-    return X_2d, y_true_2d, X_3d, y_true_3d
+    X3, _ = make_moons(n_samples=500, noise=0.1, random_state=42)
+    z = np.random.normal(scale=0.3, size=(X3.shape[0], 1))  # Добавляем третью ось (высоту)
+    noise_3d = np.random.uniform(low=-1, high=1, size=(200, 3))  # Шум в 3D
+    X_3d = np.vstack((np.hstack((X3, z)), noise_3d))
+
+    return X_2d, X_3d
 
 
 # Метод локтя и силуэтный анализ
@@ -81,17 +80,6 @@ def find_optimal_k(X):
         distortions.append(kmeans.inertia_)
         silhouette_scores.append(silhouette_score(X, kmeans.labels_))
 
-    fig, ax1 = plt.subplots(figsize=(7, 5))
-    ax2 = ax1.twinx()
-    ax1.plot(K, distortions, 'bo-', label='Инерция')
-    ax2.plot(K, silhouette_scores, 'ro-', label='Силуэтный коэффициент')
-
-    ax1.set_xlabel('Число кластеров')
-    ax1.set_ylabel('Инерция', color='b')
-    ax2.set_ylabel('Силуэт', color='r')
-    plt.title('Метод локтя и силуэтный анализ')
-    plt.show()
-
     best_k = K[np.argmax(silhouette_scores)]
     print(f'Оптимальное число кластеров: {best_k}')
     return best_k
@@ -99,27 +87,15 @@ def find_optimal_k(X):
 
 # Применение кластеризации
 def clustering(X_2d, X_3d, optimal_k):
-    dbscan_2d = DBSCAN(eps=0.15, min_samples=5).fit(X_2d)
+    dbscan_2d = DBSCAN(eps=0.15, min_samples=10).fit(X_2d)
     labels_2d = dbscan_2d.labels_
-    dbscan_3d = DBSCAN(eps=0.15, min_samples=5).fit(X_3d)
+    dbscan_3d = DBSCAN(eps=0.15, min_samples=10).fit(X_3d)
     labels_3d = dbscan_3d.labels_
 
     kmeans_2d = KMeans(n_clusters=optimal_k, random_state=42).fit(X_2d)
     labels_kmeans_2d = kmeans_2d.labels_
     kmeans_3d = KMeans(n_clusters=optimal_k, random_state=42).fit(X_3d)
     labels_kmeans_3d = kmeans_3d.labels_
-
-    def safe_silhouette(X, labels, name):
-        if len(set(labels)) > 1:
-            score = silhouette_score(X, labels)
-            print(f'Силуэт для {name}: {score:.3f}')
-        else:
-            print(f'Силуэт для {name}: невозможно вычислить (один кластер)')
-
-    safe_silhouette(X_2d, labels_2d, 'DBSCAN 2D')
-    safe_silhouette(X_3d, labels_3d, 'DBSCAN 3D')
-    safe_silhouette(X_2d, labels_kmeans_2d, 'KMeans 2D')
-    safe_silhouette(X_3d, labels_kmeans_3d, 'KMeans 3D')
 
     return labels_2d, labels_3d, labels_kmeans_2d, labels_kmeans_3d
 
@@ -137,7 +113,7 @@ def plot_clusters(X, labels, title, is_3d=False):
 
 
 # Основной вызов функций
-X_2d, y_true_2d, X_3d, y_true_3d = generate_data()
+X_2d, X_3d = generate_data()
 optimal_k = find_optimal_k(X_2d)
 labels_2d, labels_3d, labels_kmeans_2d, labels_kmeans_3d = clustering(X_2d, X_3d, optimal_k)
 

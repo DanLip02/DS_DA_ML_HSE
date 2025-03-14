@@ -10,7 +10,7 @@ warnings.filterwarnings("ignore", category=UserWarning)
 
 
 class DBSCAN:
-    def __init__(self, eps=0.2, min_samples=5):
+    def __init__(self, eps=0.05, min_samples=10):
         self.eps = eps
         self.min_samples = min_samples
         self.labels_ = None
@@ -53,17 +53,17 @@ class DBSCAN:
 
 # Генерация данных
 def generate_data():
-    X1, y1 = make_moons(n_samples=500, noise=0.03, random_state=42)
-    theta = np.pi
+    X1, y1 = make_moons(n_samples=500, noise=0.01, random_state=42)
+    theta = np.pi / 2
     R = np.array([[np.cos(theta), -np.sin(theta)],
                   [np.sin(theta), np.cos(theta)]])
-    X2 = (X1 @ R.T) + np.array([2.5, 2.5])
+    X2 = (X1 @ R.T) + np.array([1.2, 2])  # Ближе друг к другу
     y2 = y1 + 2
     X_2d = np.vstack((X1, X2))
     y_true_2d = np.concatenate((y1, y2))
 
-    X_temp, y_temp = make_moons(n_samples=500, noise=0.03, random_state=42)
-    z = np.random.normal(scale=0.05, size=(X_temp.shape[0], 1))
+    X_temp, y_temp = make_moons(n_samples=500, noise=0.01, random_state=42)
+    z = np.random.normal(scale=0.1, size=(X_temp.shape[0], 1))  # Больше шума в 3D
     X_3d = np.hstack((X_temp, z))
     y_true_3d = y_temp
 
@@ -99,15 +99,22 @@ def find_optimal_k(X):
 
 # Применение кластеризации
 def clustering(X_2d, X_3d, optimal_k):
-    dbscan_2d = DBSCAN(eps=0.15, min_samples=5).fit(X_2d)
+
+    dbscan_2d = DBSCAN(eps=0.15, min_samples=10).fit(X_2d)
     labels_2d = dbscan_2d.labels_
-    dbscan_3d = DBSCAN(eps=0.15, min_samples=5).fit(X_3d)
+    dbscan_3d = DBSCAN(eps=0.15, min_samples=10).fit(X_3d)
     labels_3d = dbscan_3d.labels_
 
-    kmeans_2d = KMeans(n_clusters=optimal_k, random_state=42).fit(X_2d)
+    kmeans_2d = KMeans(n_clusters=optimal_k, random_state=42, n_init=10).fit(X_2d)
     labels_kmeans_2d = kmeans_2d.labels_
-    kmeans_3d = KMeans(n_clusters=optimal_k, random_state=42).fit(X_3d)
+    kmeans_3d = KMeans(n_clusters=optimal_k, random_state=42, n_init=10).fit(X_3d)
     labels_kmeans_3d = kmeans_3d.labels_
+
+    X_2d_filtered = X_2d[labels_2d != -1]
+    labels_2d_filtered = labels_2d[labels_2d != -1]
+
+    X_3d_filtered = X_3d[labels_3d != -1]
+    labels_3d_filtered = labels_3d[labels_3d != -1]
 
     def safe_silhouette(X, labels, name):
         if len(set(labels)) > 1:
@@ -120,6 +127,10 @@ def clustering(X_2d, X_3d, optimal_k):
     safe_silhouette(X_3d, labels_3d, 'DBSCAN 3D')
     safe_silhouette(X_2d, labels_kmeans_2d, 'KMeans 2D')
     safe_silhouette(X_3d, labels_kmeans_3d, 'KMeans 3D')
+
+    safe_silhouette(X_2d_filtered, labels_2d_filtered, 'DBSCAN FIL 2D')
+    safe_silhouette(X_3d_filtered, labels_3d_filtered, 'DBSCAN FIL 3D')
+
 
     return labels_2d, labels_3d, labels_kmeans_2d, labels_kmeans_3d
 
@@ -141,7 +152,15 @@ X_2d, y_true_2d, X_3d, y_true_3d = generate_data()
 optimal_k = find_optimal_k(X_2d)
 labels_2d, labels_3d, labels_kmeans_2d, labels_kmeans_3d = clustering(X_2d, X_3d, optimal_k)
 
+X_2d_filtered = X_2d[labels_2d != -1]
+labels_2d_filtered = labels_2d[labels_2d != -1]
+
+X_3d_filtered = X_3d[labels_3d != -1]
+labels_3d_filtered = labels_3d[labels_3d != -1]
+
 plot_clusters(X_2d, labels_2d, "DBSCAN 2D")
 plot_clusters(X_3d, labels_3d, "DBSCAN 3D", is_3d=True)
 plot_clusters(X_2d, labels_kmeans_2d, "KMeans 2D")
 plot_clusters(X_3d, labels_kmeans_3d, "KMeans 3D", is_3d=True)
+plot_clusters(X_2d_filtered, labels_2d_filtered, "DBSCAN FIL 2D")
+plot_clusters(X_3d_filtered, labels_3d_filtered, "DBSCAN FIL 3D", is_3d=True)
